@@ -5,7 +5,7 @@ import sys
 import time
 from datetime import datetime
 
-EXPERIMENT_DIR = ''
+EXPERIMENT_DIR = '/home/tomrunia/dev/python/HyperSphere/experiments'
 if not EXPERIMENT_DIR:
 	raise ValueError('Please set EXPERIMENT_DIR in run_BO.py')
 
@@ -19,6 +19,8 @@ if os.path.realpath(__file__).rsplit('/', 3)[0] not in sys.path:
 from HyperSphere.BO.acquisition.acquisition_maximization import suggest, optimization_candidates, optimization_init_points, deepcopy_inference, N_INIT
 from HyperSphere.GP.models.gp_regression import GPRegression
 from HyperSphere.test_functions.benchmarks import *
+from HyperSphere.test_functions.mnist_weight import mnist_weight
+from HyperSphere.test_functions.arcsim_simulation import arcsim_simulation
 
 # Kernels
 from HyperSphere.GP.kernels.modules.matern52 import Matern52
