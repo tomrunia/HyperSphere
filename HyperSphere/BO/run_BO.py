@@ -5,7 +5,9 @@ import sys
 import time
 from datetime import datetime
 
-EXPERIMENT_DIR = '/home/coh1/Experiments/Hypersphere'
+EXPERIMENT_DIR = ''
+if not EXPERIMENT_DIR:
+	raise ValueError('Please set EXPERIMENT_DIR in run_BO.py')
 
 import torch
 from torch.autograd import Variable
