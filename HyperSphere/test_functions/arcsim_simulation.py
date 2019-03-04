@@ -12,9 +12,9 @@
 # Author: QUVA Lab
 # Date Created: 2019-02-27
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+
+
+
 
 import sys
 import time
@@ -32,37 +32,38 @@ from torch.autograd import Variable
 Usage to reproduce the setting of Snoek et al. - "Practical Bayesian Optimization":
 
 python HyperSphere/BO/run_BO.py \
-	--geometry cube \
-	--ard --parallel \
-	--func FUNCTION_TO_EVALUATE \
-	--dim DIMENSIONALITY \
-	--n_eval NUMBER_OF_EVALUATIONS
+    --geometry cube \
+    --ard --parallel \
+    --func FUNCTION_TO_EVALUATE \
+    --dim DIMENSIONALITY \
+    --n_eval NUMBER_OF_EVALUATIONS
 
 EXAMPLE:
-	python HyperSphere/BO/run_BO.py --geometry cube --ard --parallel --func arcsim_simulation --n_eval 10
+    python HyperSphere/BO/run_BO.py --geometry cube --ard --parallel --func arcsim_simulation --n_eval 10
 
 
 '''
 
 num_bending_params = 4
 num_params = num_bending_params + 1
-	
+    
 def arcsim_simulation(config_vector):
 
-	labels = ['bending_{}'.format(i) for i in range(num_bending_params)]
-	labels.append('wind_speed')
+    labels = ['bending_{}'.format(i) for i in range(num_bending_params)]
+    labels.append('wind_speed')
 
-	if len(config_vector) != len(labels):
-		raise ValueError('Length of configuration vector does not match labels.')
+    if len(config_vector) != len(labels):
+        raise ValueError('Length of configuration vector does not match labels.')
 
-	# Extract configuration into a dictionary
-	config = config_vector.data.numpy().tolist()
-	config = dict(zip(labels, config))
-	
-	loss = np.random.uniform(0, 5)
-	print('Loss = {:.3f}'.format(loss))
+    # Extract configuration into a dictionary
+    config = config_vector.data.numpy().tolist()
+    config = dict(list(zip(labels, config)))
+    
+    loss = np.random.uniform(0, 5)
+    print('Loss = {:.3f}'.format(loss))
 
-	return Variable(torch.FloatTensor([[loss]]))
+    return Variable(torch.FloatTensor([[loss]]))
 
 # Manually specify the dimensionality
 arcsim_simulation.dim = num_params
+

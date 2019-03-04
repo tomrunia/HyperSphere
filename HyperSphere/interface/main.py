@@ -49,7 +49,7 @@ if __name__ == "__main__":
         result = task(setting)
 
         optimizer.submit_result(setting, result)
-        print("Random setting {}, gives score: {}".format(setting, result))
+        print(("Random setting {}, gives score: {}".format(setting, result)))
 
     for i in range(iterations):
         setting = optimizer.get_new_setting()
@@ -61,8 +61,8 @@ if __name__ == "__main__":
             min_found = result
             best_setting = setting
 
-        print('iteration {}, current min found: {}'.format(i, min_found))
+        print(('iteration {}, current min found: {}'.format(i, min_found)))
 
-    print("Best minimum found: {}, at {}, "
-          "after {} iterations".format(min_found, best_setting, iterations))
+    print(("Best minimum found: {}, at {}, "
+          "after {} iterations".format(min_found, best_setting, iterations)))
 

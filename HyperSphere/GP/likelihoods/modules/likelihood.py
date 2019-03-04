@@ -3,5 +3,5 @@ from HyperSphere.GP.modules.gp_modules import GPModule, log_lower_bnd, log_upper
 
 class Likelihood(GPModule):
 
-	def __init__(self):
-		super(Likelihood, self).__init__()
+    def __init__(self):
+        super(Likelihood, self).__init__()

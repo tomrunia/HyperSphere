@@ -3,5 +3,5 @@ from HyperSphere.GP.modules.gp_modules import GPModule
 
 class Mean(GPModule):
 
-	def __init__(self):
-		super(Mean, self).__init__()
+    def __init__(self):
+        super(Mean, self).__init__()

@@ -9,22 +9,22 @@ p_2474_2497_filename = os.path.join('/home/coh1/Experiments/StochasticDepthP', '
 
 
 def death_rate_plot(p_filename):
-	valid_err = float((os.path.split(p_filename)[1])[-13:-9]) / 100
-	test_err = float((os.path.split(p_filename)[1])[-8:-4]) / 100
-	f = open(p_filename)
-	p_data = pickle.load(f)
-	f.close()
-	plt.figure(figsize=(10, 8))
-	plt.bar(range(1, len(p_data) + 1), p_data)
-	plt.xticks(size=24)
-	plt.xlabel('n-th residual block', fontsize=24)
-	plt.yticks(size=24)
-	plt.ylabel('Death rate', fontsize=24)
-	plt.title('Validation Error : %5.2f%% / Test Error : %5.2f%%' % (valid_err, test_err), fontsize=24)
-	plt.subplots_adjust(left=0.12, right=0.98, top=0.95, bottom=0.1)
-	print(np.sum(p_data))
-	plt.show()
+    valid_err = float((os.path.split(p_filename)[1])[-13:-9]) / 100
+    test_err = float((os.path.split(p_filename)[1])[-8:-4]) / 100
+    f = open(p_filename)
+    p_data = pickle.load(f)
+    f.close()
+    plt.figure(figsize=(10, 8))
+    plt.bar(list(range(1, len(p_data) + 1)), p_data)
+    plt.xticks(size=24)
+    plt.xlabel('n-th residual block', fontsize=24)
+    plt.yticks(size=24)
+    plt.ylabel('Death rate', fontsize=24)
+    plt.title('Validation Error : %5.2f%% / Test Error : %5.2f%%' % (valid_err, test_err), fontsize=24)
+    plt.subplots_adjust(left=0.12, right=0.98, top=0.95, bottom=0.1)
+    print((np.sum(p_data)))
+    plt.show()
 
 
 if __name__ == '__main__':
-	death_rate_plot(p_2490_2536_filename)
+    death_rate_plot(p_2490_2536_filename)

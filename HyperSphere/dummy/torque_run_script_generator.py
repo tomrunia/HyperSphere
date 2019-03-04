@@ -43,45 +43,45 @@ BODY_CONTINUING += "done\n"
 
 
 def generate_initiating_script(algorithm, func_name, dim, n_eval):
-	script = HEAD
-	script += "ALGORITHM=\"" + algorithm + "\"\n"
-	script += "TASK=\"" + func_name + "\"\n"
-	script += "DIM=" + str(dim) + "\n"
-	script += "NEVAL=" + str(n_eval) + "\n"
-	script += "\n"
-	script += BODY_INITIATING
-	script += BODY_CONTINUING
+    script = HEAD
+    script += "ALGORITHM=\"" + algorithm + "\"\n"
+    script += "TASK=\"" + func_name + "\"\n"
+    script += "DIM=" + str(dim) + "\n"
+    script += "NEVAL=" + str(n_eval) + "\n"
+    script += "\n"
+    script += BODY_INITIATING
+    script += BODY_CONTINUING
 
-	filename = '_'.join([algorithm, func_name, 'D' + str(dim), 'E' + str(n_eval) + '.sh'])
-	sh_file = open(filename, 'wt')
-	sh_file.write(script)
-	sh_file.close()
+    filename = '_'.join([algorithm, func_name, 'D' + str(dim), 'E' + str(n_eval) + '.sh'])
+    sh_file = open(filename, 'wt')
+    sh_file.write(script)
+    sh_file.close()
 
 
 def generate_continuing_script(pathname, n_eval):
-	script = HEAD
-	script += "EXPPATH=\"" + os.path.realpath(pathname) + "\"\n"
-	script += "NEVAL=" + str(n_eval) + "\n"
-	script += "\n"
-	script += BODY_CONTINUING
+    script = HEAD
+    script += "EXPPATH=\"" + os.path.realpath(pathname) + "\"\n"
+    script += "NEVAL=" + str(n_eval) + "\n"
+    script += "\n"
+    script += BODY_CONTINUING
 
-	filename = '_'.join([os.path.split(pathname)[1], 'E' + str(n_eval) + '.sh'])
-	sh_file = open(filename, 'wt')
-	sh_file.write(script)
-	sh_file.close()
+    filename = '_'.join([os.path.split(pathname)[1], 'E' + str(n_eval) + '.sh'])
+    sh_file = open(filename, 'wt')
+    sh_file.write(script)
+    sh_file.close()
 
 
 if __name__ == '__main__':
-	if len(sys.argv) == 5:
-		generate_initiating_script(*sys.argv[1:])
-	elif len(sys.argv) == 3:
-		generate_continuing_script(*sys.argv[1:])
-	else:
-		print("Argument should be")
-		print("1 : algorithm(none, boudanry, warping, warpingboundary, cube, cubeard")
-		print("2 : task(branin, hartmann6, rosenbrock, levy, styblinskitang, schwefel, michalewicz, camelback, qing, bird")
-		print("3 : dim(20, 50, 100)")
-		print("4 : n_eval")
-		print("OR")
-		print("1 : path")
-		print("2 : n_eval")
+    if len(sys.argv) == 5:
+        generate_initiating_script(*sys.argv[1:])
+    elif len(sys.argv) == 3:
+        generate_continuing_script(*sys.argv[1:])
+    else:
+        print("Argument should be")
+        print("1 : algorithm(none, boudanry, warping, warpingboundary, cube, cubeard")
+        print("2 : task(branin, hartmann6, rosenbrock, levy, styblinskitang, schwefel, michalewicz, camelback, qing, bird")
+        print("3 : dim(20, 50, 100)")
+        print("4 : n_eval")
+        print("OR")
+        print("1 : path")
+        print("2 : n_eval")
