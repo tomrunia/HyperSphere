@@ -133,7 +133,7 @@ def BO(geometry=None, n_eval=200, path=None, func=None, ndim=None, boundary=Fals
         stored_variable = dict()
         for key in stored_variable_names:
             stored_variable[key] = locals()[key]
-        f = open(data_config_filename, 'w')
+        f = open(data_config_filename, 'wb')
         pickle.dump(stored_variable, f)
         f.close()
 
@@ -148,7 +148,7 @@ def BO(geometry=None, n_eval=200, path=None, func=None, ndim=None, boundary=Fals
         inference = inference_method((x_input, output), model)
 
         reference, ref_ind = torch.min(output, 0)
-        reference = reference.data.squeeze()[0]
+        reference = reference.item()
         gp_hyper_params = inference.sampling(n_sample=10, n_burnin=0, n_thin=1)
         inferences = deepcopy_inference(inference, gp_hyper_params)
 
@@ -224,11 +224,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # if args.n_eval == 0:
     #     args.n_eval = 3 if args.path is None else 1
-    assert (args.path is None) != (args.__name__ is None)
+    assert (args.path is None) != (args.func_name is None)
     
     args_dict = vars(args)
-    if args.__name__ is not None:
-        exec('func=' + args.__name__)
+    if args.func_name is not None:
+        exec('func=' + args.func_name)
         args_dict['func'] = func
     del args_dict['func_name']
     if args.path is None:

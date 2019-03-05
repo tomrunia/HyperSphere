@@ -70,24 +70,45 @@ def optimize(max_step, x0, reference, inferences, acquisition_function=expected_
         else:
             out_of_bounds = bounds
 
-    x = Variable(x0.clone().view(1, -1), requires_grad=True)
+    #x = Variable(x0.clone().view(1, -1), requires_grad=True)
+    x = x0.clone().view(1, -1)
+    x.requires_grad_()
+
     prev_loss = None
     ###--------------------------------------------------###
     # This block can be modified to use other optimization method
     optimizer = optim.Adam([x], lr=0.01)
+
     for s in range(max_step):
+
         optimizer.zero_grad()
         loss = -acquisition(x, reference=reference, inferences=inferences, acquisition_function=acquisition_function, in_optimization=True)
-        curr_loss = loss.data.squeeze()[0]
-        x.grad = grad([loss], [x], retain_graph=True)[0]
+
+        curr_loss = loss.squeeze(0)
+
+        # tmp_x = torch.tensor(10.0)
+        # tmp_x.requires_grad_()
+        # tmp_y = torch.sum(tmp_x**2)
+        # grad_tmp = grad([tmp_y], [tmp_x], retain_graph=True, allow_unused=True)
+
+        print(loss.squeeze().requires_grad)
+        print(x.squeeze(0).requires_grad)
+
+        grad_tmp = grad([loss.squeeze()], [x.squeeze(0)], retain_graph=True, allow_unused=True)
+        x.grad = grad_tmp[0]
+
+        print('curr_loss:', curr_loss)
+        print('grad.tmp:', grad_tmp)
+        print('x.grad:', x.grad)
+
         ftol = (prev_loss - curr_loss) / max(1, np.abs(prev_loss), np.abs(curr_loss)) if prev_loss is not None else 1
-        if (x.grad.data != x.grad.data).any() or (ftol < 1e-9):
+        if torch.isnan(x.grad).any() or (ftol < 1e-9):
             break
-        prev_x = x.data.clone()
+        prev_x = x.clone()
         prev_loss = curr_loss
         optimizer.step()
         if bounds is not None and out_of_bounds(x):
-            x.data = prev_x
+            x = prev_x
             break
     ###--------------------------------------------------###
     optimum_loc = x.clone()

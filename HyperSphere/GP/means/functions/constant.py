@@ -7,7 +7,6 @@ class ConstantMean(Function):
     @staticmethod
     def forward(ctx, input, const_mean):
         ctx.save_for_backward(input, const_mean)
-
         return const_mean.repeat(input.size(0), 1)
 
     @staticmethod
@@ -34,8 +33,11 @@ if __name__ == '__main__':
     ndim = 5
     input_grad = False
     param_grad = not input_grad
-    input = Variable(torch.randn(n1, ndim), requires_grad=input_grad)
-    const_mean = Variable(torch.randn(1) + 1.5, requires_grad=param_grad)
+
+    input = torch.randn(n1, ndim)
+    input.requires_grad_()
+    const_mean = torch.randn(1) + 1.5
+
     eps = 1e-4
     # gradcheck doesn't have to pass all the time.
     test = gradcheck(ConstantMean.apply, (input, const_mean), eps=eps)

@@ -32,9 +32,9 @@ class Inference(nn.Module):
         self.model.reset_parameters()
 
     def init_parameters(self):
-        amp = torch.std(self.train_y).data[0]
+        amp = torch.std(self.train_y)
         self.model.kernel.init_parameters(amp)
-        self.model.mean.const_mean.data.fill_(torch.mean(self.train_y.data))
+        self.model.mean.const_mean.data.fill_(torch.mean(self.train_y))
         self.model.likelihood.log_noise_var.data.fill_(np.log(amp / 1000))
 
     def stable_parameters(self):
@@ -145,7 +145,7 @@ class Inference(nn.Module):
             if not self.stable_parameters():
                 return -np.inf
             prior = self.model.prior(hyper)
-            likelihood = -self.negative_log_likelihood(hyper_tensor).data.squeeze()[0]
+            likelihood = -self.negative_log_likelihood(hyper_tensor).item()
             return prior + likelihood
         # Sampling is continued from the parameter values from previous BO step
         hyper_numpy = self.model.param_to_vec().numpy()
