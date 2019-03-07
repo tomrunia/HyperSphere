@@ -8,7 +8,7 @@ def bird(x):
     if flat:
         x = x.view(1, -1)
     ndim = x.size(1)
-    n_repeat = ndim / 2
+    n_repeat = int(ndim / 2)
     x = x * 2 * math.pi
     output = 0
     for i in range(n_repeat):

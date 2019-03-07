@@ -158,18 +158,18 @@ def BO(geometry=None, n_eval=200, path=None, func=None, ndim=None, boundary=Fals
 
         time_list.append(time.time())
         elapse_list.append(time_list[-1] - time_list[-2])
-        pred_mean_list.append(pred_mean.squeeze()[0])
-        pred_std_list.append(pred_std.squeeze()[0])
-        pred_var_list.append(pred_var.squeeze()[0])
-        pred_stdmax_list.append(pred_stdmax.squeeze()[0])
-        pred_varmax_list.append(pred_varmax.squeeze()[0])
+        pred_mean_list.append(pred_mean.item())
+        pred_std_list.append(pred_std.item())
+        pred_var_list.append(pred_var.item())
+        pred_stdmax_list.append(pred_stdmax.item())
+        pred_varmax_list.append(pred_varmax.item())
         reference_list.append(reference)
-        refind_list.append(ref_ind.data.squeeze()[0] + 1)
-        dist_to_ref_list.append(torch.sum((next_x_point - x_input[ref_ind]).data ** 2) ** 0.5)
+        refind_list.append(ref_ind.item() + 1)
+        dist_to_ref_list.append(torch.sum((next_x_point - x_input[ref_ind]) ** 2) ** 0.5)
         sample_info_list.append(sample_info)
 
         x_input = torch.cat([x_input, next_x_point], 0)
-        output = torch.cat([output, func(x_input[-1]).resize(1, 1)])
+        output = torch.cat([output, func(x_input[-1]).unsqueeze(0).resize(1, 1)])
 
         min_ind = torch.min(output, 0)[1]
         min_loc = x_input[min_ind]
@@ -187,7 +187,7 @@ def BO(geometry=None, n_eval=200, path=None, func=None, ndim=None, boundary=Fals
                          sample_info_list[i][2], sample_info_list[i][0], sample_info_list[i][1],
                          pred_mean_list[i], pred_std_list[i], pred_std_list[i] / pred_stdmax_list[i], pred_var_list[i], pred_var_list[i] / pred_varmax_list[i],
                          dist_to_ref_list[i], dist_to_min[i], dist_to_suggest[i]))
-            min_str = '  <========= MIN' if i == min_ind.data.squeeze()[0] else ''
+            min_str = '  <========= MIN' if i == min_ind.item() else ''
             print((time_str + data_str + min_str))
             logfile.writelines(time_str + data_str + min_str + '\n')
 
@@ -197,7 +197,7 @@ def BO(geometry=None, n_eval=200, path=None, func=None, ndim=None, boundary=Fals
         stored_variable = dict()
         for key in stored_variable_names:
             stored_variable[key] = locals()[key]
-        f = open(data_config_filename, 'w')
+        f = open(data_config_filename, 'wb')
         pickle.dump(stored_variable, f)
         f.close()
 
@@ -228,9 +228,13 @@ if __name__ == '__main__':
     
     args_dict = vars(args)
     if args.func_name is not None:
+
+        # What a hack ... 
         exec('func=' + args.func_name)
         args_dict['func'] = func
+
     del args_dict['func_name']
+
     if args.path is None:
         assert (func.dim == 0) != (args.ndim is None)
         assert args.geometry is not None

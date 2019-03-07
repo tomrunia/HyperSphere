@@ -65,6 +65,7 @@ class Inference(nn.Module):
         self.jitter = chol_jitter
 
     def predict(self, pred_x, hyper=None, in_optimization=False):
+        
         if hyper is not None:
             param_original = self.model.param_to_vec()
             self.cholesky_update(hyper)
@@ -208,7 +209,9 @@ if __name__ == '__main__':
     ndim = 1
     model_for_generating = GPRegression(kernel=SquaredExponentialKernel(ndim))
     train_x = Variable(torch.FloatTensor(ndata, ndim).uniform_(-2, 2))
-    chol_L = torch.potrf((model_for_generating.kernel(train_x) + torch.diag(model_for_generating.likelihood(train_x))).data, upper=False)
+
+    chol_L = torch.cholesky((model_for_generating.kernel(train_x) + torch.diag(model_for_generating.likelihood(train_x))).data, upper=False)
+
     train_y = model_for_generating.mean(train_x) + Variable(torch.mm(chol_L, torch.randn(ndata, 1)))
     train_data = (train_x, train_y)
     param_original = model_for_generating.param_to_vec()

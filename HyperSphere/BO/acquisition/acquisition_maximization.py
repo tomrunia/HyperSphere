@@ -16,7 +16,6 @@ N_INIT = 20 # Number of initial points for acquisition function maximization
 N_AVAILABLE_CORE = 8 # When there is this many available cpu cores new optimization is started
 MAX_OPTIMIZATION_STEP = 500
 
-
 def suggest(x0, reference, inferences, acquisition_function=expected_improvement, bounds=None, pool=None):
     max_step = MAX_OPTIMIZATION_STEP
     n_init = x0.size(0)
@@ -61,8 +60,8 @@ def suggest(x0, reference, inferences, acquisition_function=expected_improvement
     mean, std, var, stdmax, varmax = mean_std_var(suggestion, inferences)
     return suggestion, mean, std, var, stdmax, varmax
 
-
 def optimize(max_step, x0, reference, inferences, acquisition_function=expected_improvement, bounds=None):
+
     if bounds is not None:
         if not hasattr(bounds, '__call__'):
             def out_of_bounds(x_input):
@@ -83,36 +82,46 @@ def optimize(max_step, x0, reference, inferences, acquisition_function=expected_
 
         optimizer.zero_grad()
         loss = -acquisition(x, reference=reference, inferences=inferences, acquisition_function=acquisition_function, in_optimization=True)
-
         curr_loss = loss.squeeze(0)
 
         # tmp_x = torch.tensor(10.0)
         # tmp_x.requires_grad_()
         # tmp_y = torch.sum(tmp_x**2)
         # grad_tmp = grad([tmp_y], [tmp_x], retain_graph=True, allow_unused=True)
+        
+        # Both require a gradient
+        #print(loss.squeeze().requires_grad)
+        #print(x.squeeze(0).requires_grad)
 
-        print(loss.squeeze().requires_grad)
-        print(x.squeeze(0).requires_grad)
+        # import pdb
+        # pdb.set_trace()
 
-        grad_tmp = grad([loss.squeeze()], [x.squeeze(0)], retain_graph=True, allow_unused=True)
-        x.grad = grad_tmp[0]
+        if torch.isnan(loss).any():
+            raise ValueError('Loss contains NaN', loss)
 
-        print('curr_loss:', curr_loss)
-        print('grad.tmp:', grad_tmp)
-        print('x.grad:', x.grad)
+        if torch.isnan(x).any():
+            raise ValueError('x contains NaN', x)
 
-        ftol = (prev_loss - curr_loss) / max(1, np.abs(prev_loss), np.abs(curr_loss)) if prev_loss is not None else 1
+        # grad_tmp = grad([loss.squeeze()], [x.squeeze(0)], retain_graph=True, allow_unused=True)
+        # if grad_tmp[0] is None:
+        #     raise ValueError('gradient is None', grad_tmp[0])
+
+        x.grad = torch.zeros(1,2) #grad_tmp[0]
+
+        #prev_loss_numpy = prev_loss
+        curr_loss_numpy = curr_loss.detach()
+        ftol = (prev_loss - curr_loss) / max(1, np.abs(prev_loss), np.abs(curr_loss_numpy)) if prev_loss is not None else 1
         if torch.isnan(x.grad).any() or (ftol < 1e-9):
             break
         prev_x = x.clone()
-        prev_loss = curr_loss
+        prev_loss = curr_loss_numpy
         optimizer.step()
         if bounds is not None and out_of_bounds(x):
             x = prev_x
             break
     ###--------------------------------------------------###
     optimum_loc = x.clone()
-    optimum_value = -acquisition(x, reference=reference, inferences=inferences, acquisition_function=acquisition_function, in_optimization=True)[0].data.squeeze()[0]
+    optimum_value = -acquisition(x, reference=reference, inferences=inferences, acquisition_function=acquisition_function, in_optimization=True).item()
     return optimum_loc, optimum_value
 
 
@@ -137,6 +146,7 @@ def acquisition(x, reference, inferences, acquisition_function=expected_improvem
         numerically_stable_list.append(pred_dist[2])
         zero_pred_var_list.append(pred_dist[3])
         acquisition_sample_list.append(acquisition_function(pred_mean_sample[:, 0], pred_var_sample[:, 0], reference=reference))
+
     sample_info = (np.sum(numerically_stable_list), np.sum(zero_pred_var_list), len(numerically_stable_list))
     if in_optimization:
         return torch.stack(acquisition_sample_list, 1).sum(1, keepdim=True)

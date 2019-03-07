@@ -14,7 +14,6 @@ class GPRegression(GP):
         self.mean = mean
         self.likelihood = GaussianLikelihood()
 
-
 if __name__ == '__main__':
     from HyperSphere.GP.kernels.modules.squared_exponential import SquaredExponentialKernel
     GP = GPRegression(kernel=SquaredExponentialKernel(5))
