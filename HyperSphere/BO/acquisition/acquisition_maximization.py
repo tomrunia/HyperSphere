@@ -27,7 +27,6 @@ def suggest(x0, reference, inferences, acquisition_function=expected_improvement
     if pool is not None:
         # pool = torch.multiprocessing.Pool(n_init) if parallel else None
         # results = [pool.apply_async(optimize, args=(max_step, x0[p], reference, inferences, acquisition_function, bounds)) for p in range(n_init)]
-
         results = []
         process_started = [False] * n_init
         process_running = [False] * n_init
@@ -36,12 +35,22 @@ def suggest(x0, reference, inferences, acquisition_function=expected_improvement
             cpu_usage = psutil.cpu_percent(0.2)
             run_more = (100.0 - cpu_usage) * float(psutil.cpu_count()) > 100.0 * N_AVAILABLE_CORE
             if run_more:
-                results.append(pool.apply_async(optimize, args=(max_step, x0[process_index], reference, inferences, acquisition_function, bounds)))
+                
+                # RuntimeError: Cowardly refusing to serialize non-leaf tensor which requires_grad, 
+                # since autograd does not support crossing process boundaries.  If you just want to 
+                # transfer the data, call detach() on the tensor before serializing (e.g., putting it on the queue).
+                curr_results = pool.apply_async(optimize, args=(max_step, x0[process_index], reference, inferences, acquisition_function, bounds,))
+                
+                results.append(curr_results)
                 process_started[process_index] = True
                 process_running[process_index] = True
                 process_index += 1
+
         while [not res.ready() for res in results].count(True) > 0:
             time.sleep(1)
+
+        for res in results:
+            print(type(res.get()))
 
         return_values = [res.get() for res in results]
         local_optima, optima_value = list(zip(*return_values))
@@ -79,22 +88,15 @@ def optimize(max_step, x0, reference, inferences, acquisition_function=expected_
     optimizer = optim.Adam([x], lr=0.01)
 
     for s in range(max_step):
-
+        
+        prev_x = x.clone()
         optimizer.zero_grad()
+
         loss = -acquisition(x, reference=reference, inferences=inferences, acquisition_function=acquisition_function, in_optimization=True)
         curr_loss = loss.squeeze(0)
 
-        # tmp_x = torch.tensor(10.0)
-        # tmp_x.requires_grad_()
-        # tmp_y = torch.sum(tmp_x**2)
-        # grad_tmp = grad([tmp_y], [tmp_x], retain_graph=True, allow_unused=True)
-        
-        # Both require a gradient
-        #print(loss.squeeze().requires_grad)
-        #print(x.squeeze(0).requires_grad)
-
-        # import pdb
-        # pdb.set_trace()
+        #grad_tmp = grad([tmp_y], [tmp_x], retain_graph=True, allow_unused=True)
+        #grad_tmp = tmp_y.backward()
 
         if torch.isnan(loss).any():
             raise ValueError('Loss contains NaN', loss)
@@ -106,19 +108,34 @@ def optimize(max_step, x0, reference, inferences, acquisition_function=expected_
         # if grad_tmp[0] is None:
         #     raise ValueError('gradient is None', grad_tmp[0])
 
-        x.grad = torch.zeros(1,2) #grad_tmp[0]
-
+        ########################################################################
+        # PyTorch 0.3.1 code; this basically does what .backward() does
+        # However, it also checks the stopping criteria
+        #x.grad = torch.zeros(1,2)
         #prev_loss_numpy = prev_loss
-        curr_loss_numpy = curr_loss.detach()
-        ftol = (prev_loss - curr_loss) / max(1, np.abs(prev_loss), np.abs(curr_loss_numpy)) if prev_loss is not None else 1
-        if torch.isnan(x.grad).any() or (ftol < 1e-9):
+        # curr_loss_numpy = curr_loss.detach()
+        # ftol = (prev_loss - curr_loss) / max(1, np.abs(prev_loss), np.abs(curr_loss_numpy)) if prev_loss is not None else 1
+        # if torch.isnan(x.grad).any() or (ftol < 1e-9):
+        #     break
+        # prev_x = x.clone()
+        ########################################################################
+        
+        loss.backward(retain_graph=True)
+        if torch.isnan(x.grad).any():
+            raise ValueError('Encountered NaN in x.grad')
+        
+        curr_loss = curr_loss.detach().numpy()
+        ftol = (prev_loss - curr_loss) / max(1, np.abs(prev_loss), np.abs(curr_loss)) if prev_loss is not None else 1
+        if ftol < 1e-9:
             break
-        prev_x = x.clone()
-        prev_loss = curr_loss_numpy
+    
         optimizer.step()
+        prev_loss = curr_loss
+
         if bounds is not None and out_of_bounds(x):
             x = prev_x
             break
+
     ###--------------------------------------------------###
     optimum_loc = x.clone()
     optimum_value = -acquisition(x, reference=reference, inferences=inferences, acquisition_function=acquisition_function, in_optimization=True).item()

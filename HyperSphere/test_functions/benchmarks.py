@@ -27,7 +27,7 @@ def branin(x):
     if flat:
         x = x.view(1, -1)
     ndim = x.size(1)
-    n_repeat = ndim / 2
+    n_repeat = int(ndim / 2)
     n_dummy = ndim % 2
 
     shift = torch.cat([torch.FloatTensor([2.5, 7.5]).repeat(n_repeat), torch.zeros(n_dummy)])

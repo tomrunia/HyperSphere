@@ -54,7 +54,7 @@ class Matern52(Function):
             kernel_grad_log_ls = -diff ** 2/scaling * intermediate_grad.unsqueeze(2).repeat(1, 1, ndim)
             grad_log_ls = (grad_output.unsqueeze(2).repeat(1, 1, ndim) * kernel_grad_log_ls).sum(0).sum(0)
 
-        return grad_input1, grad_input2, grad_log_amp, grad_log_ls
+        return grad_input1, grad_input2, grad_log_amp.unsqueeze(0), grad_log_ls
 
 
 if __name__ == '__main__':

@@ -20,10 +20,9 @@ class ConstantMean(Function):
         grad_input = grad_const_mean = None
 
         if ctx.needs_input_grad[0]:
-            grad_input = input.clone()
-            grad_input.data.zero_()
+            grad_input = torch.zeros_like(input)
         if ctx.needs_input_grad[1]:
-            grad_const_mean = torch.sum(grad_output)
+            grad_const_mean = torch.sum(grad_output).unsqueeze(0)
 
         return grad_input, grad_const_mean
 
