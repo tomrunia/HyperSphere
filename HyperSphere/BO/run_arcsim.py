@@ -3,20 +3,19 @@ import os.path
 import pickle
 import sys
 import time
+import logging
+
 from datetime import datetime
 
 import torch
+import torch.nn as nn
 from torch.autograd import Variable
-import torch.multiprocessing as multiprocessing
 
-if os.path.realpath(__file__).rsplit('/', 3)[0] not in sys.path:
-    sys.path.append(os.path.realpath(__file__).rsplit('/', 3)[0])
-
+# General
 from HyperSphere.BO.acquisition.acquisition_maximization import suggest, optimization_candidates, optimization_init_points, deepcopy_inference, N_INIT
 from HyperSphere.GP.models.gp_regression import GPRegression
 from HyperSphere.test_functions.benchmarks import *
 from HyperSphere.test_functions.mnist_weight import mnist_weight
-from HyperSphere.test_functions.arcsim_simulation import arcsim_simulation
 
 # Kernels
 from HyperSphere.GP.kernels.modules.matern52 import Matern52
@@ -28,12 +27,6 @@ from HyperSphere.BO.shadow_inference.inference_sphere_satellite import ShadowInf
 from HyperSphere.BO.shadow_inference.inference_sphere_origin import ShadowInference as origin_ShadowInference
 from HyperSphere.BO.shadow_inference.inference_sphere_origin_satellite import ShadowInference as both_ShadowInference
 
-# feature_map
-from HyperSphere.feature_map.modules.kumaraswamy import Kumaraswamy
-
-# boundary conditions
-from HyperSphere.feature_map.functionals import sphere_bound
-
 ################################################################################
 ################################################################################
 
@@ -43,15 +36,13 @@ EXPERIMENT_DIR = '/home/tomrunia/experiments/2019_WindSpeed/sim_refinement'
 ################################################################################
 
 
-def arcsim_blackbox_optimization(geometry=None, n_eval=200, path=None, func=None, 
-                                 ndim=None, boundary=False, ard=False, origin=False, 
-                                 warping=False, parallel=False):
+def arcsim_blackbox_optimization(config, distance_func, target_video, arcsim_conf_scaler,
+                                 geometry=None, n_eval=200, path=None, 
+                                 func=None, ndim=None, boundary=False, ard=False, 
+                                 origin=False, logger=None):
 
     if geometry is None or geometry != 'cube':
         raise ValueError('Please set geometry=cube for ArcSim optimization.')
-
-    if parallel:
-        raise NotImplementedError('Parallel optimization not supported with PyTorch > 1.0.')
 
     if path is not None:
         raise NotImplementedError('Restoring from path not supported.')
@@ -59,13 +50,22 @@ def arcsim_blackbox_optimization(geometry=None, n_eval=200, path=None, func=None
     if not os.path.isdir(EXPERIMENT_DIR):
         raise NotADirectoryError('EXPERIMENT_DIR variable is not properly assigned. Please check it.')
 
+    if not isinstance(distance_func, nn.Module):
+        raise ValueError('Distance function must be an instance of nn.Module')
+    
+    if not isinstance(target_video, torch.Tensor):
+        raise ValueError('Target video must be an instance of torch.Tensor')
+
     if origin:
         raise ValueError('Origin must be set to False.')
 
+    if (func.dim == 0 and ndim is not None):
+        assert func.dim == ndim
+
     assert (path is None) != (func is None)
-    assert (func.dim == 0) != (ndim is None)
-    if ndim is None:
-        ndim = func.dim
+
+    if logger is None:
+        logger = logging.getLogger()
 
     ################################################################################
     # Define the Model
@@ -89,11 +89,11 @@ def arcsim_blackbox_optimization(geometry=None, n_eval=200, path=None, func=None
         dims=ndim,
         conf=exp_conf_str)
 
-    os.makedirs(os.path.join(EXPERIMENT_DIR, folder_name))
-    logfile_dir = os.path.join(EXPERIMENT_DIR, folder_name, 'log')
+    logfile_dir = os.path.join(config.output_dir, 'bo_logs')
     os.makedirs(logfile_dir)
-    model_filename = os.path.join(EXPERIMENT_DIR, folder_name, 'model.pt')
-    data_config_filename = os.path.join(EXPERIMENT_DIR, folder_name, 'data_config.pkl')
+
+    model_filename = os.path.join(config.output_dir, 'model.pt')
+    data_config_filename = os.path.join(config.output_dir, 'data_config.pkl')
 
     ################################################################################
 
@@ -101,9 +101,9 @@ def arcsim_blackbox_optimization(geometry=None, n_eval=200, path=None, func=None
     n_init_eval = x_input.size(0)
     output = Variable(torch.zeros(n_init_eval, 1))
 
-    # Actual function call ?
     for i in range(n_init_eval):
-        output[i] = func(x_input[i])
+        # Actual function call to arcsim_refinement_function
+        output[i] = func(x_input[i], config, distance_func, target_video, arcsim_conf_scaler, logger)
 
     time_list = [time.time()] * n_init_eval
     elapse_list = [0] * n_init_eval
@@ -177,7 +177,11 @@ def arcsim_blackbox_optimization(geometry=None, n_eval=200, path=None, func=None
         sample_info_list.append(sample_info)
 
         x_input = torch.cat([x_input, next_x_point], 0)
-        output = torch.cat([output, func(x_input[-1]).unsqueeze(0).resize(1, 1)])
+
+        # Actual function call to arcsim_refinement_function
+        func_output = func(x_input[-1], config, distance_func, target_video, arcsim_conf_scaler, logger)
+        func_output = func_output.unsqueeze(0).resize(1, 1)
+        output = torch.cat([output, func_output])
 
         min_ind = torch.min(output, 0)[1]
         min_loc = x_input[min_ind]
@@ -228,31 +232,29 @@ def arcsim_blackbox_optimization(geometry=None, n_eval=200, path=None, func=None
 ################################################################################
 ################################################################################
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    config = dict()
+#     config = dict()
     
-    parser = argparse.ArgumentParser(description='ArcSim Optimization')
-    parser.add_argument('--geometry', dest='geometry', default='cube')
-    parser.add_argument('--num_eval', type=int, default=10)
-    parser.add_argument('--num_dims', type=int, default=None)
-    parser.add_argument('--ard', dest='ard', action='store_true', default=False)
+#     parser = argparse.ArgumentParser(description='ArcSim Optimization')
+#     parser.add_argument('--geometry', dest='geometry', default='cube')
+#     parser.add_argument('--num_eval', type=int, default=10)
+#     parser.add_argument('--num_dims', type=int, default=None)
+#     parser.add_argument('--ard', dest='ard', action='store_true', default=False)
 
-    config = parser.parse_args()
-    config.path = None
+#     config = parser.parse_args()
+#     config.path = None
 
-    optimization_func = branin
-    optimization_dims = branin.dim if config.num_dims is None else config.num_dims
+#     optimization_func = branin
+#     optimization_dims = branin.dim if config.num_dims is None else config.num_dims
 
-    arcsim_blackbox_optimization(
-        geometry=config.geometry,
-        n_eval=config.num_eval,
-        path=config.path,
-        func=optimization_func,
-        ndim=optimization_dims,
-        boundary=False,
-        ard=config.ard,
-        origin=False,
-        warping=False,
-        parallel=False
-    )
+#     arcsim_blackbox_optimization(
+#         geometry=config.geometry,
+#         n_eval=config.num_eval,
+#         path=config.path,
+#         func=optimization_func,
+#         ndim=optimization_dims,
+#         boundary=False,
+#         ard=config.ard,
+#         origin=False,
+#     )
