@@ -5,6 +5,7 @@ import sys
 import time
 import logging
 
+import time
 from datetime import datetime
 
 import torch
@@ -40,6 +41,8 @@ def arcsim_blackbox_optimization(config, distance_func, target_video, arcsim_con
                                  geometry=None, n_eval=200, path=None, 
                                  func=None, ndim=None, boundary=False, ard=False, 
                                  origin=False, logger=None):
+
+    start_time = time.time()
 
     if geometry is None or geometry != 'cube':
         raise ValueError('Please set geometry=cube for ArcSim optimization.')
@@ -226,7 +229,15 @@ def arcsim_blackbox_optimization(config, distance_func, target_video, arcsim_con
         pickle.dump(stored_variable, f)
         f.close()
 
-    print(('Experiment based on data in %s' % os.path.split(model_filename)[0]))
+    duration = time.time() - start_time
+    time_delta = datetime.timedelta(seconds=duration)
+    hours   = int(str(time_delta).split(':')[0])
+    minutes = int(str(time_delta).split(':')[1])
+    seconds = int(str(time_delta).split(':')[2][0:2])
+
+    print('Experiment based on data in %s' % os.path.split(model_filename)[0])
+    print('Experiment with {} evaluations done in {} hours, {} minutes and {} seconds.'.format(n_eval, hours, minutes, seconds))
+    
     return os.path.split(model_filename)[0]
 
 ################################################################################

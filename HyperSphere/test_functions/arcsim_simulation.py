@@ -12,10 +12,6 @@
 # Author: QUVA Lab
 # Date Created: 2019-02-27
 
-
-
-
-
 import sys
 import time
 import tqdm
