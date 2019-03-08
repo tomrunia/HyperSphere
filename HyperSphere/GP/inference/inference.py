@@ -1,6 +1,6 @@
-import progressbar
 import sys
 import time
+import tqdm
 
 import numpy as np
 import sampyl as smp
@@ -98,11 +98,9 @@ class Inference(nn.Module):
         return nll
 
     def learning(self, n_restarts=10):
-        bar = progressbar.ProgressBar(max_value=n_restarts)
-        bar.update(0)
         vec_list = []
         nll_list = []
-        for r in range(n_restarts):
+        for r in tqdm.tqdam(range(n_restarts)):
             # For the first optimization, parameter values optimized in previous BO is used.
             if r != 0:
                 for m in self.model.children():
@@ -126,8 +124,6 @@ class Inference(nn.Module):
                     self.model.vec_to_param(prev_param)
                     break
             ###--------------------------------------------------###
-            bar.update(r + 1)
-            sys.stdout.flush()
             vec_list.append(self.model.param_to_vec())
             nll_list.append(self.negative_log_likelihood().data.squeeze()[0])
         best_ind = np.nanargmin(nll_list)

@@ -41,7 +41,6 @@ python HyperSphere/BO/run_BO.py \
 EXAMPLE:
     python HyperSphere/BO/run_BO.py --geometry cube --ard --parallel --func arcsim_simulation --n_eval 10
 
-
 '''
 
 num_bending_params = 4
