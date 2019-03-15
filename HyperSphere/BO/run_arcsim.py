@@ -6,7 +6,7 @@ import time
 import logging
 
 import time
-from datetime import datetime
+import datetime
 
 import torch
 import torch.nn as nn
@@ -31,18 +31,12 @@ from HyperSphere.BO.shadow_inference.inference_sphere_origin_satellite import Sh
 ################################################################################
 ################################################################################
 
-EXPERIMENT_DIR = '/home/tomrunia/experiments/2019_WindSpeed/sim_refinement'
-
-################################################################################
-################################################################################
-
-
-def arcsim_blackbox_optimization(config, distance_func, target_video, arcsim_conf_scaler,
-                                 geometry=None, n_eval=200, path=None, 
+def arcsim_blackbox_optimization(config, distance_func, target_video, 
+                                 arcsim_conf_scaler, geometry=None, n_eval=200, path=None, 
                                  func=None, ndim=None, boundary=False, ard=False, 
                                  origin=False, logger=None):
 
-    start_time = time.time()
+    global_start_time = time.time()
 
     if geometry is None or geometry != 'cube':
         raise ValueError('Please set geometry=cube for ArcSim optimization.')
@@ -50,8 +44,8 @@ def arcsim_blackbox_optimization(config, distance_func, target_video, arcsim_con
     if path is not None:
         raise NotImplementedError('Restoring from path not supported.')
 
-    if not os.path.isdir(EXPERIMENT_DIR):
-        raise NotADirectoryError('EXPERIMENT_DIR variable is not properly assigned. Please check it.')
+    if not os.path.isdir(config.output_dir):
+        raise NotADirectoryError('config.output_dir path does not exist.')
 
     if not isinstance(distance_func, nn.Module):
         raise ValueError('Distance function must be an instance of nn.Module')
@@ -81,7 +75,7 @@ def arcsim_blackbox_optimization(config, distance_func, target_video, arcsim_con
     ################################################################################
     # Prepare directories 
 
-    dir_list = [elm for elm in os.listdir(EXPERIMENT_DIR) if os.path.isdir(os.path.join(EXPERIMENT_DIR, elm))]
+    dir_list = [elm for elm in os.listdir(config.output_dir) if os.path.isdir(os.path.join(config.output_dir, elm))]
 
     exp_conf_str = geometry
     exp_conf_str += ('_ARD' if ard else '') + ('_boundary' if boundary else '')
@@ -198,7 +192,7 @@ def arcsim_blackbox_optimization(config, distance_func, target_video, arcsim_con
             
             min_str = '<== MINIMUM' if i == min_ind.item() else ''
             print("{datestring} | Step {step} | output: {output:.4f} | R: {R:.4f} | OutOfBox: {out_of_box:.4f} {min_str}".format(
-                datestring=datetime.now().strftime("%A %H:%M"), 
+                datestring=datetime.datetime.now().strftime("%A %H:%M"), 
                 step=i+1, 
                 output=output.squeeze()[i],
                 R=torch.sum(x_input.data[i]**2)**0.5,
@@ -229,7 +223,7 @@ def arcsim_blackbox_optimization(config, distance_func, target_video, arcsim_con
         pickle.dump(stored_variable, f)
         f.close()
 
-    duration = time.time() - start_time
+    duration = time.time() - global_start_time
     time_delta = datetime.timedelta(seconds=duration)
     hours   = int(str(time_delta).split(':')[0])
     minutes = int(str(time_delta).split(':')[1])
